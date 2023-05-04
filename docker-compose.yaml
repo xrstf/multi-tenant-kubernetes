@@ -1,0 +1,79 @@
+version: "3"
+services:
+  etcd:
+    hostname: etcd
+    image: gcr.io/etcd-development/etcd:v3.5.8
+    command:
+      - etcd
+      - --listen-client-urls=https://0.0.0.0:4001
+      - --advertise-client-urls=https://etcd:4001
+      - --initial-cluster-state=new
+      - --client-cert-auth
+      - --trusted-ca-file=/pki/ca.pem
+      - --cert-file=/pki/etcd-server.pem
+      - --key-file=/pki/etcd-server-key.pem
+    volumes:
+      - ./data/etcd:/default.etcd
+      - ./pki:/pki
+
+  etcd-prefix1:
+    hostname: etcd-prefix1
+    image: gcr.io/etcd-development/etcd:v3.5.8
+    command:
+      - etcd
+      - grpc-proxy
+      - start
+      - --debug
+      - --endpoints=etcd:4001
+      - --listen-addr=0.0.0.0:4001
+      - --advertise-client-url=http://etcd-prefix1:4001
+      - --namespace=prefix1
+      # these three configure how the proxy talks to etcd
+      - --cacert=/pki/ca.pem
+      - --cert=/pki/etcd-client.pem
+      - --key=/pki/etcd-client-key.pem
+      # these three configure the TLS that proxy talks to clients
+      - --trusted-ca-file=/pki/ca.pem
+      - --cert-file=/pki/etcd-server.pem
+      - --key-file=/pki/etcd-server-key.pem
+    volumes:
+      - ./pki:/pki
+
+  apiserver:
+    hostname: apiserver
+    image: registry.k8s.io/kube-apiserver:v1.27.1
+    command:
+      - kube-apiserver
+      - --allow-privileged
+      - --api-audiences=https://2ff96mld8z.captain.captain.k8c.io:30068
+      - --authorization-mode=Node,RBAC
+      - --client-ca-file=/pki/ca.pem
+      - --enable-bootstrap-token-auth
+      - --endpoint-reconciler-type=none
+      - --etcd-cafile=/pki/ca.pem
+      - --etcd-certfile=/pki/etcd-client.pem
+      - --etcd-keyfile=/pki/etcd-client-key.pem
+
+      # choose whether to connect to etcd directly or via the proxy
+      # - --etcd-servers=https://etcd:4001
+      - --etcd-servers=https://etcd-prefix1:4001
+
+      - --external-hostname=dummyk8s.example.com
+      - --kubelet-certificate-authority=/pki/ca.pem
+      - --kubelet-client-certificate=/pki/kubelet.pem
+      - --kubelet-client-key=/pki/kubelet-key.pem
+      - --kubelet-preferred-address-types=ExternalIP,InternalIP
+      - --secure-port=30068
+      - --service-account-issuer=https://2ff96mld8z.captain.captain.k8c.io:30068
+      - --service-account-key-file=/pki/service-account-signer-key.pem
+      - --service-account-signing-key-file=/pki/service-account-signer-key.pem
+      - --service-cluster-ip-range=10.240.16.0/20
+      - --service-node-port-range=30000-32767
+      - --storage-backend=etcd3
+      - --tls-cert-file=/pki/apiserver.pem
+      - --tls-private-key-file=/pki/apiserver-key.pem
+    ports:
+      - "30068:30068"
+    volumes:
+      - ./data/kubernetes:/var/run/kubernetes
+      - ./pki:/pki
