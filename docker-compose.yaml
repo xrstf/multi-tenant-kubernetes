@@ -74,5 +74,4 @@ services:
     ports:
       - "30068:30068"
     volumes:
-      - ./data/kubernetes:/var/run/kubernetes
       - ./pki:/pki
