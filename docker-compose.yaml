@@ -45,7 +45,6 @@ services:
     command:
       - kube-apiserver
       - --allow-privileged
-      - --api-audiences=https://2ff96mld8z.captain.captain.k8c.io:30068
       - --authorization-mode=Node,RBAC
       - --client-ca-file=/pki/ca.pem
       - --enable-bootstrap-token-auth
@@ -64,7 +63,7 @@ services:
       - --kubelet-client-key=/pki/kubelet-key.pem
       - --kubelet-preferred-address-types=ExternalIP,InternalIP
       - --secure-port=30068
-      - --service-account-issuer=https://2ff96mld8z.captain.captain.k8c.io:30068
+      - --service-account-issuer=https://127.0.0.1:30068
       - --service-account-key-file=/pki/service-account-signer-key.pem
       - --service-account-signing-key-file=/pki/service-account-signer-key.pem
       - --service-cluster-ip-range=10.240.16.0/20
